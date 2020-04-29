@@ -166,16 +166,16 @@ class Fortio:
             sys.exit("invalid load generator %s, must be fortio or nighthawk", self.load_gen_type)
 
     def nosidecar(self, load_gen_cmd, sidecar_mode):
-        return load_gen_cmd + "_" + sidecar_mode + " " + self.compute_uri(self.server.ip, "direct_port")
+        return load_gen_cmd + sidecar_mode + " " + self.compute_uri(self.server.ip, "direct_port")
 
     def serversidecar(self, load_gen_cmd, sidecar_mode):
-        return load_gen_cmd + "_" + sidecar_mode + " " + self.compute_uri(self.server.ip, "port")
+        return load_gen_cmd + sidecar_mode + " " + self.compute_uri(self.server.ip, "port")
 
     def clientsidecar(self, load_gen_cmd, sidecar_mode):
-        return load_gen_cmd + "_" + sidecar_mode + " " + self.compute_uri(self.server.labels["app"], "direct_port")
+        return load_gen_cmd + sidecar_mode + " " + self.compute_uri(self.server.labels["app"], "direct_port")
 
     def bothsidecar(self, load_gen_cmd, sidecar_mode):
-        return load_gen_cmd + "_" + sidecar_mode + " " + self.compute_uri(self.server.labels["app"], "port")
+        return load_gen_cmd + sidecar_mode + " " + self.compute_uri(self.server.labels["app"], "port")
 
     def ingress(self, load_gen_cmd):
         url = urlparse(self.run_ingress)
@@ -189,9 +189,9 @@ class Fortio:
     def execute_sidecar_mode(self, sidecar_mode, load_gen_type, load_gen_cmd, sidecar_mode_func, labels, perf_label_suffix):
         print('-------------- Running in {sidecar_mode} mode --------------'.format(sidecar_mode=sidecar_mode))
         if load_gen_type == "fortio":
-            kubectl_exec(self.client.name, sidecar_mode_func(load_gen_cmd, sidecar_mode))
+            kubectl_exec(self.client.name, sidecar_mode_func(load_gen_cmd, perf_label_suffix))
         elif load_gen_type == "nighthawk":
-            run_nighthawk(self.client.name, sidecar_mode_func(load_gen_type, sidecar_mode), labels + "_" + sidecar_mode)
+            run_nighthawk(self.client.name, sidecar_mode_func(load_gen_cmd, perf_label_suffix), labels + perf_label_suffix)
 
         if self.perf_record and len(perf_label_suffix) > 0:
             run_perf(
@@ -252,10 +252,8 @@ class Fortio:
             "--output-format json",
             "--prefetch-connections",
             "--open-loop",
-            "--jitter-uniform 0.0001s",
             "--experimental-h1-connection-reuse-strategy lru",
             "--experimental-h2-use-multiple-connections",
-            "--nighthawk-service 127.0.0.1:{port_forward}",
             "--label Nighthawk",
             "--connections {conn}",
             "--rps {qps}",
@@ -320,19 +318,35 @@ class Fortio:
             workers = 1
             load_gen_cmd = self.generate_nighthawk_cmd(workers, conn, qps, duration, labels)
 
+        perf_label = ""
+        sidecar_mode = ""
+        sidecar_mode_func = None
+
         if self.run_baseline:
-            self.execute_sidecar_mode("baseline", self.load_gen_type, load_gen_cmd, self.nosidecar, labels, "")
+            sidecar_mode = "baseline"
+            sidecar_mode_func = self.nosidecar
+            self.execute_sidecar_mode(sidecar_mode, self.load_gen_type, load_gen_cmd, sidecar_mode_func, labels, perf_label)
 
         if self.run_serversidecar:
-            self.execute_sidecar_mode("serveronly", self.load_gen_type, load_gen_cmd, self.serversidecar, labels, "_srv_serveronly")
+            perf_label = "_srv_serveronly"
+            sidecar_mode = "server sidecar"
+            sidecar_mode_func = self.serversidecar
+            self.execute_sidecar_mode(sidecar_mode, self.load_gen_type, load_gen_cmd, sidecar_mode_func, labels, perf_label)
 
         if self.run_clientsidecar:
-            self.execute_sidecar_mode("clientonly", self.load_gen_type, load_gen_cmd, self.clientsidecar, labels, "_srv_clientonly")
+            perf_label = "_srv_clientonly"
+            sidecar_mode = "client sidecar"
+            sidecar_mode_func = self.clientsidecar
+            self.execute_sidecar_mode(sidecar_mode, self.load_gen_type, load_gen_cmd, sidecar_mode_func, labels, perf_label)
 
         if self.run_bothsidecar:
-            self.execute_sidecar_mode("both", self.load_gen_type, load_gen_cmd, self.bothsidecar, labels, "_srv_bothsidecars")
+            perf_label = "_srv_bothsidecars"
+            sidecar_mode = "both sidecar"
+            sidecar_mode_func = self.bothsidecar
+            self.execute_sidecar_mode(sidecar_mode, self.load_gen_type, load_gen_cmd, sidecar_mode_func, labels, perf_label)
 
         if self.run_ingress:
+            perf_label = "_srv_ingress"
             print('-------------- Running in ingress mode --------------')
             kubectl_exec(self.client.name, self.ingress(load_gen_cmd))
             if self.perf_record:
@@ -417,6 +431,8 @@ def fortio_from_config_file(args):
 
 
 def can_connect_to_nighthawk_service():
+    # TODO(oschaaf): re-instate going through the gRPC service.
+    return True
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         return sock.connect_ex(('127.0.0.1', NIGHTHAWK_GRPC_SERVICE_PORT_FORWARD)) == 0
 
@@ -452,39 +468,42 @@ def run_perf_test(args):
             min_duration=min_duration))
         exit(1)
 
-        # Create a port_forward for accessing nighthawk_service.
-        if not can_connect_to_nighthawk_service():
-            popen_cmd = "kubectl -n \"{ns}\" port-forward svc/fortioclient {port}:9999".format(
-                ns=NAMESPACE,
-                port=NIGHTHAWK_GRPC_SERVICE_PORT_FORWARD)
-            process = subprocess.Popen(shlex.split(
-                popen_cmd), stdout=subprocess.PIPE)
-            max_tries = 10
-            while max_tries > 0 and not can_connect_to_nighthawk_service():
-                time.sleep(0.5)
-                max_tries = max_tries - 1
+    port_forward_process = None
 
-        if not can_connect_to_nighthawk_service():
-            print("Failure connecting to nighthawk_service")
-            sys.exit(-1)
-        else:
-            print("Able to connect to nighthawk_service, proceeding")
+    # Create a port_forward for accessing nighthawk_service.
+    if not can_connect_to_nighthawk_service():
+        popen_cmd = "kubectl -n \"{ns}\" port-forward svc/fortioclient {port}:9999".format(
+            ns=NAMESPACE,
+            port=NIGHTHAWK_GRPC_SERVICE_PORT_FORWARD)
+        port_forward_process = subprocess.Popen(shlex.split(
+            popen_cmd), stdout=subprocess.PIPE)
+        max_tries = 10
+        while max_tries > 0 and not can_connect_to_nighthawk_service():
+            time.sleep(0.5)
+            max_tries = max_tries - 1
+
+    if not can_connect_to_nighthawk_service():
+        print("Failure connecting to nighthawk_service")
+        sys.exit(-1)
+    else:
+        print("Able to connect to nighthawk_service, proceeding")
     try:
         for conn in fortio.conn:
             for qps in fortio.qps:
                 fortio.run(headers=fortio.headers, conn=conn, qps=qps,
                            duration=fortio.duration, size=fortio.size)
     finally:
-        process.kill()
+        if not port_forward_process is None:
+            port_forward_process.kill()
 
 
 def run_nighthawk(pod, remote_cmd, labels):
-    # Use a local docker instance of Nighthawk to control nighthawk_service running in the pod
-    # and run transforms on the output we get.
-    docker_cmd = "docker run --rm --network=host {docker_image} {remote_cmd}".format(
-        docker_image=NIGHTHAWK_DOCKER_IMAGE, remote_cmd=remote_cmd)
-    print(docker_cmd, flush=True)
-    process = subprocess.Popen(shlex.split(docker_cmd), stdout=subprocess.PIPE)
+    kube_cmd = "kubectl --namespace {namespace} exec {pod} -c captured -- {remote_cmd}".format(
+        pod=pod,
+        remote_cmd=remote_cmd,
+        namespace=NAMESPACE)
+    print("nighthawk commandline: " + kube_cmd)
+    process = subprocess.Popen(shlex.split(kube_cmd), stdout=subprocess.PIPE)
     (output, err) = process.communicate()
     exit_code = process.wait()
 
