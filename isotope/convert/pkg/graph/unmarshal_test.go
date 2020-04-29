@@ -72,13 +72,16 @@ var (
 			"services": [{"name": "a"}]
 		}
 	`)
-	graphWithOneService = ServiceGraph{[]svc.Service{
-		{
-			Name:        "a",
-			Type:        svctype.ServiceHTTP,
-			NumReplicas: 1,
+	graphWithOneService = ServiceGraph{
+		Services: []svc.Service{
+			{
+				Name:        "a",
+				Type:        svctype.ServiceHTTP,
+				NumReplicas: 1,
+			},
 		},
-	}}
+		Defaults: ServiceDefaults{},
+	}
 	jsonWithDefaultsAndManyServices = []byte(`
 		{
 			"defaults": {
@@ -124,43 +127,46 @@ var (
 			]
 		}
 	`)
-	graphWithDefaultsAndManyServices = ServiceGraph{[]svc.Service{
-		{
-			Name:         "a",
-			Type:         svctype.ServiceHTTP,
-			NumReplicas:  5,
-			ErrorRate:    0.1,
-			ResponseSize: 128,
-			Script: script.Script([]script.Command{
-				script.SleepCommand(100 * time.Millisecond),
-			}),
+	graphWithDefaultsAndManyServices = ServiceGraph{
+		Services: []svc.Service{
+			{
+				Name:         "a",
+				Type:         svctype.ServiceHTTP,
+				NumReplicas:  5,
+				ErrorRate:    0.1,
+				ResponseSize: 128,
+				Script: script.Script([]script.Command{
+					script.SleepCommand(100 * time.Millisecond),
+				}),
+			},
+			{
+				Name:         "b",
+				Type:         svctype.ServiceHTTP,
+				NumReplicas:  2,
+				ErrorRate:    0.1,
+				ResponseSize: 128,
+				Script: script.Script([]script.Command{
+					script.RequestCommand{ServiceName: "a", Size: 1024},
+					script.SleepCommand(10 * time.Millisecond),
+				}),
+			},
+			{
+				Name:         "c",
+				Type:         svctype.ServiceGRPC,
+				NumReplicas:  1,
+				ErrorRate:    0.2,
+				ResponseSize: 1024,
+				Script: script.Script([]script.Command{
+					script.ConcurrentCommand{
+						script.RequestCommand{ServiceName: "a", Size: 516},
+						script.RequestCommand{ServiceName: "b", Size: 516},
+					},
+					script.SleepCommand(10 * time.Millisecond),
+				}),
+			},
 		},
-		{
-			Name:         "b",
-			Type:         svctype.ServiceHTTP,
-			NumReplicas:  2,
-			ErrorRate:    0.1,
-			ResponseSize: 128,
-			Script: script.Script([]script.Command{
-				script.RequestCommand{ServiceName: "a", Size: 1024},
-				script.SleepCommand(10 * time.Millisecond),
-			}),
-		},
-		{
-			Name:         "c",
-			Type:         svctype.ServiceGRPC,
-			NumReplicas:  1,
-			ErrorRate:    0.2,
-			ResponseSize: 1024,
-			Script: script.Script([]script.Command{
-				script.ConcurrentCommand{
-					script.RequestCommand{ServiceName: "a", Size: 516},
-					script.RequestCommand{ServiceName: "b", Size: 516},
-				},
-				script.SleepCommand(10 * time.Millisecond),
-			}),
-		},
-	}}
+		Defaults: ServiceDefaults{},
+	}
 	jsonWithRequestToUndefinedService = []byte(`
 		{
 			"services": [
