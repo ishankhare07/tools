@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: "2020-04-29T11:27:54Z"
+  labels:
+    app: client
+  name: client
+spec:
+  selector:
+    matchLabels:
+      app: client
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: "2020-04-29T11:27:54Z"
+      labels:
+        app: client
+    spec:
+      containers:
+      - args:
+        - server
+        name: fortio-client
+        ports:
+        - containerPort: 8080
+        - containerPort: 42422
+        resources: {}
+status: {}

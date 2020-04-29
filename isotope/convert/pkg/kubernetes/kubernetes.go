@@ -50,6 +50,12 @@ var (
 		"prometheus.io/scrape": "true"}
 )
 
+// ManifestMap is a map of cluster context as keys to manifests
+// as values which are basically array of strings each holding
+// a single manifest corresponding to that cluster
+type _manifestMap map[string][]string
+type ManifestMap map[string]string
+
 // ServiceGraphToKubernetesManifests converts a ServiceGraph to Kubernetes
 // manifests.
 func ServiceGraphToKubernetesManifests(
@@ -59,31 +65,38 @@ func ServiceGraphToKubernetesManifests(
 	serviceMaxIdleConnectionsPerHost int,
 	clientNodeSelector map[string]string,
 	clientImage string,
-	environmentName string) ([]byte, error) {
-	numServices := len(serviceGraph.Services)
-	numManifests := numManifestsPerService*numServices + numConfigMaps
-	manifests := make([]string, 0, numManifests)
+	environmentName string) (ManifestMap, error) {
 
-	appendManifest := func(manifest interface{}) error {
+	manifestMap := make(_manifestMap)
+	returnMap := make(ManifestMap)
+
+	appendManifest := func(clusterName string, manifest interface{}) error {
 		yamlDoc, err := yaml.Marshal(manifest)
 		if err != nil {
 			return err
 		}
-		manifests = append(manifests, string(yamlDoc))
+
+		if manifests, ok := manifestMap[clusterName]; !ok {
+			// create the first entry
+			manifestMap[clusterName] = []string{string(yamlDoc)}
+		} else {
+			manifests = append(manifests, string(yamlDoc))
+		}
+
 		return nil
 	}
 
-	namespace := makeServiceGraphNamespace()
-	if err := appendManifest(namespace); err != nil {
-		return nil, err
-	}
+	addManifestToAllClusters := func(manifest interface{}) error {
+		yamlDoc, err := yaml.Marshal(manifest)
+		if err != nil {
+			return err
+		}
 
-	configMap, err := makeConfigMap(serviceGraph)
-	if err != nil {
-		return nil, err
-	}
-	if err := appendManifest(configMap); err != nil {
-		return nil, err
+		for _, clusterManifests := range manifestMap {
+			clusterManifests = append([]string{string(yamlDoc)}, clusterManifests...)
+		}
+
+		return nil
 	}
 
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -92,13 +105,13 @@ func ServiceGraphToKubernetesManifests(
 		k8sDeployment := makeDeployment(
 			service, serviceNodeSelector, serviceImage,
 			serviceMaxIdleConnectionsPerHost)
-		innerErr := appendManifest(k8sDeployment)
+		innerErr := appendManifest(service.ClusterContext, k8sDeployment)
 		if innerErr != nil {
 			return nil, innerErr
 		}
 
 		k8sService := makeService(service)
-		innerErr = appendManifest(k8sService)
+		innerErr = appendManifest(service.ClusterContext, k8sService)
 		if innerErr != nil {
 			return nil, innerErr
 		}
@@ -109,30 +122,47 @@ func ServiceGraphToKubernetesManifests(
 			var i int32
 			// Generates random RBAC rules for the service.
 			for i = 0; i < service.NumRbacPolicies; i++ {
-				manifests = append(manifests, generateRbacPolicy(service, false /* allowAll */))
+				addManifestToAllClusters(generateRbacPolicy(service, false /* allowAll */))
 			}
 			// Generates "allow-all" RBAC rule for the service.
-			manifests = append(manifests, generateRbacPolicy(service, true /* allowAll */))
+			addManifestToAllClusters(generateRbacPolicy(service, true /* allowAll */))
 		}
 	}
 
 	fortioDeployment := makeFortioDeployment(
 		clientNodeSelector, clientImage)
-	if err := appendManifest(fortioDeployment); err != nil {
+	if err := appendManifest(serviceGraph.Defaults.FortioCluster, fortioDeployment); err != nil {
 		return nil, err
 	}
 
 	fortioService := makeFortioService()
-	if err := appendManifest(fortioService); err != nil {
+	if err := appendManifest(serviceGraph.Defaults.FortioCluster, fortioService); err != nil {
 		return nil, err
 	}
 
 	if hasRbacPolicy {
-		manifests = append(manifests, generateRbacConfig())
+		addManifestToAllClusters(generateRbacConfig())
 	}
 
-	yamlDocString := strings.Join(manifests, "---\n")
-	return []byte(yamlDocString), nil
+	namespace := makeServiceGraphNamespace()
+	if err := addManifestToAllClusters(namespace); err != nil {
+		return nil, err
+	}
+
+	configMap, err := makeConfigMap(serviceGraph)
+	if err != nil {
+		return nil, err
+	}
+	if err := addManifestToAllClusters(configMap); err != nil {
+		return nil, err
+	}
+
+	// yamlDocString := strings.Join(manifests, "---\n")
+	for k, v := range manifestMap {
+		returnMap[k] = strings.Join(v, "---\n")
+	}
+
+	return returnMap, nil
 }
 
 func combineLabels(a, b map[string]string) map[string]string {

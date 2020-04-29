@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: "2020-04-29T11:27:54Z"
+  labels:
+    app: service-graph
+  name: a
+  namespace: service-graph
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: a
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+      creationTimestamp: "2020-04-29T11:27:54Z"
+      labels:
+        name: a
+        role: service
+    spec:
+      containers:
+      - args:
+        - --max-idle-connections-per-host=0
+        env:
+        - name: SERVICE_NAME
+          value: a
+        name: mock-service
+        ports:
+        - containerPort: 8080
+        resources: {}
+        volumeMounts:
+        - mountPath: /etc/config
+          name: config-volume
+      volumes:
+      - configMap:
+          items:
+          - key: service-graph
+            path: service-graph.yaml
+          name: service-graph-config
+        name: config-volume
+status: {}

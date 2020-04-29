@@ -24,6 +24,7 @@ import (
 
 	"istio.io/tools/isotope/convert/pkg/graph"
 	"istio.io/tools/isotope/convert/pkg/kubernetes"
+	"istio.io/tools/isotope/convert/pkg/output"
 )
 
 // kubernetesCmd represents the kubernetes command
@@ -69,7 +70,8 @@ var kubernetesCmd = &cobra.Command{
 			serviceMaxIdleConnectionsPerHost, clientNodeSelector, clientImage, environmentName)
 		exitIfError(err)
 
-		fmt.Println(string(manifests))
+		err = output.CreateAndPopulateFiles("manifests", manifests)
+		exitIfError(err)
 	},
 }
 
