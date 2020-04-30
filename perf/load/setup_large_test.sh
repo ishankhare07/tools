@@ -28,5 +28,6 @@ source common.sh
 
 NUM=${1:?"number of namespaces. 20 x this number"}
 START=${2:-"0"}
+MANIFEST_DIR=${3:?"manifest directory"}
 
-start_servicegraphs "${NUM}" "${START}"
+start_servicegraphs "${NUM}" "${START}" "${MANIFEST_DIR}"

@@ -14,55 +14,66 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [[ -z "${GATEWAY_URL:-}" ]];then
-  GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || true)
-fi
-
-HTTPS=${HTTPS:-"false"}
-H2UPGRADE=${H2UPGRADE:-"false"}
+# if [[ -z "${GATEWAY_URL:-}" ]];then
+#   GATEWAY_URL=$(kubectl -n istio-system get service istio-ingressgateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || true)
+# fi
+# 
+# HTTPS=${HTTPS:-"false"}
+# H2UPGRADE=${H2UPGRADE:-"false"}
 
 function run_test() {
   local ns=${1:?"namespaces"}
   local prefix=${2:?"prefix name for service. typically svc-"}
+  local manifestDir=${3:?"path to the manifest directory"}
 
-  YAML=$(mktemp).yml
-  # shellcheck disable=SC2086
-  helm -n ${ns} template \
-          --set serviceNamePrefix="${prefix}" \
-          --set Namespace="${ns}" \
-          --set domain="${DNS_DOMAIN}" \
-          --set ingress="${GATEWAY_URL}" \
-          --set https="${HTTPS}" \
-          --set h2upgrade="${H2UPGRADE}" \
-          . > "${YAML}"
-  echo "Wrote ${YAML}"
+  # YAML=$(mktemp).yml
+  # # shellcheck disable=SC2086
+  # helm -n ${ns} template \
+  #         --set serviceNamePrefix="${prefix}" \
+  #         --set Namespace="${ns}" \
+  #         --set domain="${DNS_DOMAIN}" \
+  #         --set ingress="${GATEWAY_URL}" \
+  #         --set https="${HTTPS}" \
+  #         --set h2upgrade="${H2UPGRADE}" \
+  #         . > "${YAML}"
+  # echo "Wrote ${YAML}"
 
-  kubectl create ns "${ns}" || true
-  kubectl label namespace "${ns}" "${INJECTION_LABEL:-istio-injection=enabled}" --overwrite
+  # kubectl create ns "${ns}" || true
+  # kubectl label namespace "${ns}" "${INJECTION_LABEL:-istio-injection=enabled}" --overwrite
 
-   if [[ -z "${DELETE}" ]];then
+
+  if [[ -z "${DELETE}" ]];then
     sleep 3
-    kubectl -n "${ns}" apply -f "${YAML}"
+    for manifest in ${manifestDir}/*.yaml; do
+	# kubectl apply -f "${manifestDir}/${manifest}" --context "$(echo ${mainfest} | cut -d'.' -f1)"
+	echo "context" "$(echo ${mainfest} | cut -d'.' -f1)"
+	echo "filename" "${manifest}"
+    done
   else
-    kubectl -n "${ns}" delete -f "${YAML}" || true
-    kubectl delete ns "${ns}"
+    for manifest in ${manifestDirectory}/*.yaml; do
+	# kubectl delete -f "${manifestDir}/${manifest}" --context "$(echo ${mainfest} | cut -d'.' -f1)"|| true
+	echo "context" "$(echo ${mainfest} | cut -d'.' -f1)"
+	echo "filename" "${manifestDir}/${manifest}"
+    done
+    # kubectl delete ns "${ns}"
   fi
 }
 
 function start_servicegraphs() {
   local nn=${1:?"number of namespaces"}
   local min=${2:-"0"}
+  local manifestDir=${3:?"path to manifest directory"}
 
    # shellcheck disable=SC2004
    for ((ii=$min; ii<$nn; ii++)) {
     ns=$(printf 'service-graph%.2d' $ii)
     prefix=$(printf 'svc%.2d-' $ii)
     if [[ -z "${DELETE}" ]];then
-      ${CMD} run_test "${ns}" "${prefix}"
-      ${CMD} "${WD}/loadclient/setup_test.sh" "${ns}" "${prefix}"
+      ${CMD} run_test "${ns}" "${prefix}" "${manifestDir}"
+      # ${CMD} "${WD}/loadclient/setup_test.sh" "${ns}" "${prefix}"
     else
-      ${CMD} "${WD}/loadclient/setup_test.sh" "${ns}" "${prefix}"
-      ${CMD} run_test "${ns}" "${prefix}"
+      # ${CMD} "${WD}/loadclient/setup_test.sh" "${ns}" "${prefix}"
+      ${CMD} run_test "${ns}" "${prefix}" "${manifestDir}"
     fi
 
     sleep 30
