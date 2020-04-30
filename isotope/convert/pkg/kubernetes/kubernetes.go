@@ -92,8 +92,9 @@ func ServiceGraphToKubernetesManifests(
 			return err
 		}
 
-		for _, clusterManifests := range manifestMap {
-			clusterManifests = append([]string{string(yamlDoc)}, clusterManifests...)
+
+		for clusterContext, clusterManifests := range manifestMap {
+			manifestMap[clusterContext] = append([]string{string(yamlDoc)}, clusterManifests...)
 		}
 
 		return nil
