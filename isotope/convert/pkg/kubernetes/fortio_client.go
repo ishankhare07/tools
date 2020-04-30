@@ -16,6 +16,8 @@
 package kubernetes
 
 import (
+	"fmt"
+
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +29,9 @@ var fortioClientLabels = map[string]string{"app": "client"}
 
 func makeFortioDeployment(
 	nodeSelector map[string]string,
-	clientImage string) (deployment appsv1.Deployment) {
+	clientImage string,
+	ingressGatewayEndpoint string,
+	serviceHostHeader string) (deployment appsv1.Deployment) {
 	deployment.APIVersion = "apps/v1"
 	deployment.Kind = "Deployment"
 	deployment.ObjectMeta.Name = "client"
@@ -47,7 +51,20 @@ func makeFortioDeployment(
 					{
 						Name:  "fortio-client",
 						Image: clientImage,
-						Args:  []string{"server"},
+						Args: []string{
+							"load",
+							"-c",
+							"8",
+							"-qps",
+							"50",
+							"-t",
+							"0",
+							"-r",
+							"0.0001",
+							"-H",
+							fmt.Sprintf("Host: %s", serviceHostHeader),
+							fmt.Sprintf("http://%s", ingressGatewayEndpoint),
+						},
 						Ports: []apiv1.ContainerPort{
 							{
 								ContainerPort: consts.ServicePort,

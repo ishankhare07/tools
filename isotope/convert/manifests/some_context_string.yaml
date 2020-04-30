@@ -1,7 +1,39 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: "2020-04-30T08:25:38Z"
+  labels:
+    istio-injection: enabled
+  name: service-graph
+spec: {}
+status: {}
+---
+apiVersion: v1
+data:
+  service-graph: |
+    defaults:
+      fortio_cluster: some_context_string
+      ingress_gateway_endpoint: x.x.x.x
+    services:
+    - cluster_context: context_string
+      isEntrypoint: true
+      name: a
+      numRbacPolicies: 0
+      numReplicas: 1
+      responseSize: 1KiB
+      type: http
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-04-30T08:25:38Z"
+  labels:
+    app: service-graph
+  name: service-graph-config
+  namespace: service-graph
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  creationTimestamp: "2020-04-29T11:27:54Z"
+  creationTimestamp: "2020-04-30T08:25:38Z"
   labels:
     app: client
   name: client
@@ -12,16 +44,45 @@ spec:
   strategy: {}
   template:
     metadata:
-      creationTimestamp: "2020-04-29T11:27:54Z"
+      creationTimestamp: "2020-04-30T08:25:38Z"
       labels:
         app: client
     spec:
       containers:
       - args:
-        - server
+        - load
+        - -c
+        - "8"
+        - -qps
+        - "50"
+        - -t
+        - "0"
+        - -r
+        - "0.0001"
+        - -H
+        - 'Host: a.service-graph'
+        - http://x.x.x.x
         name: fortio-client
         ports:
         - containerPort: 8080
         - containerPort: 42422
         resources: {}
 status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+  creationTimestamp: "2020-04-30T08:25:38Z"
+  labels:
+    app: client
+  name: client
+spec:
+  ports:
+  - port: 8080
+    targetPort: 0
+  selector:
+    app: client
+status:
+  loadBalancer: {}

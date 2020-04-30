@@ -80,7 +80,7 @@ func ServiceGraphToKubernetesManifests(
 			// create the first entry
 			manifestMap[clusterName] = []string{string(yamlDoc)}
 		} else {
-			manifests = append(manifests, string(yamlDoc))
+			manifestMap[clusterName] = append(manifests, string(yamlDoc))
 		}
 
 		return nil
@@ -91,7 +91,6 @@ func ServiceGraphToKubernetesManifests(
 		if err != nil {
 			return err
 		}
-
 
 		for clusterContext, clusterManifests := range manifestMap {
 			manifestMap[clusterContext] = append([]string{string(yamlDoc)}, clusterManifests...)
@@ -131,7 +130,10 @@ func ServiceGraphToKubernetesManifests(
 	}
 
 	fortioDeployment := makeFortioDeployment(
-		clientNodeSelector, clientImage)
+		clientNodeSelector,
+		clientImage,
+		serviceGraph.Defaults.IngressGatewayEndpoint,
+		fmt.Sprintf("%s.%s", serviceGraph.Services[0].Name, consts.ServiceGraphNamespace))
 	if err := appendManifest(serviceGraph.Defaults.FortioCluster, fortioDeployment); err != nil {
 		return nil, err
 	}
@@ -145,16 +147,17 @@ func ServiceGraphToKubernetesManifests(
 		addManifestToAllClusters(generateRbacConfig())
 	}
 
-	namespace := makeServiceGraphNamespace()
-	if err := addManifestToAllClusters(namespace); err != nil {
-		return nil, err
-	}
-
 	configMap, err := makeConfigMap(serviceGraph)
 	if err != nil {
 		return nil, err
 	}
+
 	if err := addManifestToAllClusters(configMap); err != nil {
+		return nil, err
+	}
+
+	namespace := makeServiceGraphNamespace()
+	if err := addManifestToAllClusters(namespace); err != nil {
 		return nil, err
 	}
 
