@@ -19,7 +19,7 @@ import "istio.io/tools/isotope/convert/pkg/graph/svc"
 // ServiceGraph describes a set of services which mock a service-oriented
 // architecture.
 type ServiceGraph struct {
-	Defaults ServiceDefaults `json:"defaults,omitempty"`
+	Global   ServiceDefaults `json:"global,omitempty"`
 	Services []svc.Service   `json:"services"`
 }
 

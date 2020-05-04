@@ -132,14 +132,14 @@ func ServiceGraphToKubernetesManifests(
 	fortioDeployment := makeFortioDeployment(
 		clientNodeSelector,
 		clientImage,
-		serviceGraph.Defaults.IngressGatewayEndpoint,
+		serviceGraph.Global.IngressGatewayEndpoint,
 		fmt.Sprintf("%s.%s", serviceGraph.Services[0].Name, consts.ServiceGraphNamespace))
-	if err := appendManifest(serviceGraph.Defaults.FortioCluster, fortioDeployment); err != nil {
+	if err := appendManifest(serviceGraph.Global.FortioCluster, fortioDeployment); err != nil {
 		return nil, err
 	}
 
 	fortioService := makeFortioService()
-	if err := appendManifest(serviceGraph.Defaults.FortioCluster, fortioService); err != nil {
+	if err := appendManifest(serviceGraph.Global.FortioCluster, fortioService); err != nil {
 		return nil, err
 	}
 

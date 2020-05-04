@@ -80,7 +80,7 @@ var (
 				NumReplicas: 1,
 			},
 		},
-		Defaults: ServiceDefaults{},
+		Global: ServiceDefaults{},
 	}
 	jsonWithDefaultsAndManyServices = []byte(`
 		{
@@ -165,7 +165,7 @@ var (
 				}),
 			},
 		},
-		Defaults: ServiceDefaults{},
+		Global: ServiceDefaults{},
 	}
 	jsonWithRequestToUndefinedService = []byte(`
 		{

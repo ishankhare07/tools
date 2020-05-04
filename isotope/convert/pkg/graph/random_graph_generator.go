@@ -7,7 +7,7 @@ import (
 
 func GenerateRandomServiceGraph(numberOfService int, requestSize int, responseSize int, listOfClusters []string, ingressGatewayEndpoint string) ServiceGraph {
 	serviceGraph := new(ServiceGraph)
-	serviceGraph.Defaults = generateServiceDefaults(listOfClusters, ingressGatewayEndpoint)
+	serviceGraph.Global = generateServiceDefaults(listOfClusters, ingressGatewayEndpoint)
 
 	return *serviceGraph
 }
