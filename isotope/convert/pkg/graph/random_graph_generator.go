@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"istio.io/tools/isotope/convert/pkg/graph/script"
+	"istio.io/tools/isotope/convert/pkg/graph/size"
 	"istio.io/tools/isotope/convert/pkg/graph/svc"
 	"istio.io/tools/isotope/convert/pkg/graph/svctype"
 )
@@ -26,6 +27,10 @@ func GenerateRandomServiceGraph(numberOfService int,
 	generator RandomFromRange) ServiceGraph {
 	serviceGraph := new(ServiceGraph)
 	serviceGraph.Global = generateServiceDefaults(listOfClusters, ingressGatewayEndpoint, generator)
+	serviceGraph.Defaults = Defaults{
+		ResponseSize: size.ByteSize(responseSize),
+		RequestSize:  size.ByteSize(requestSize),
+	}
 
 	for i := 0; i < numberOfService; i++ {
 		s := svc.Service{
@@ -33,9 +38,7 @@ func GenerateRandomServiceGraph(numberOfService int,
 			Type:           getRandomServiceType(generator),
 			NumReplicas:    defaultNumReplicas,
 			ClusterContext: getRandomCluster(listOfClusters, generator),
-			Script: script.Script{
-				getTargetRequestCommands(i, numberOfService),
-			},
+			Script:         getTargetRequestCommands(i, numberOfService),
 		}
 
 		serviceGraph.Services = append(serviceGraph.Services, s)
@@ -44,8 +47,8 @@ func GenerateRandomServiceGraph(numberOfService int,
 	return *serviceGraph
 }
 
-func getTargetRequestCommands(serviceToSkip, numOfServices int) []script.RequestCommand {
-	requestCommands := []script.RequestCommand{}
+func getTargetRequestCommands(serviceToSkip, numOfServices int) script.Script {
+	requestCommands := script.Script{}
 
 	for i := 0; i < numOfServices; i++ {
 		if i != serviceToSkip {

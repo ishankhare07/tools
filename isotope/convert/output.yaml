@@ -1,0 +1,30 @@
+defaults:
+  errorRate: 0
+  numRbacPolicies: 0
+  numReplicas: 0
+  requestSize: 9.766KiB
+  responseSize: 97.66KiB
+  script: []
+  type: ""
+global:
+  fortio_cluster: cluster2
+  ingress_gateway_endpoint: 1.1.1.1
+services:
+- cluster_context: cluster2
+  name: s0
+  numRbacPolicies: 0
+  numReplicas: 6
+  script:
+  - call:
+      service: s1
+      size: 0B
+  type: grpc
+- cluster_context: cluster2
+  name: s1
+  numRbacPolicies: 0
+  numReplicas: 6
+  script:
+  - call:
+      service: s0
+      size: 0B
+  type: grpc
