@@ -1,0 +1,60 @@
+apiVersion: v1
+data:
+  service-graph: |
+    defaults:
+      fortio_cluster: gke_istio-testing-270515_asia-southeast1_istio-spike-1
+      ingress_gateway_endpoint: x.x.x.x
+    services:
+    - cluster_context: context_string
+      isEntrypoint: true
+      name: a
+      numRbacPolicies: 0
+      numReplicas: 1
+      responseSize: 1KiB
+      type: http
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2020-04-30T06:15:40Z"
+  labels:
+    app: service-graph
+  name: service-graph-config
+  namespace: service-graph
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: "2020-04-30T06:15:40Z"
+  labels:
+    istio-injection: enabled
+  name: service-graph
+spec: {}
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: "2020-04-30T06:15:40Z"
+  labels:
+    app: client
+  name: client
+spec:
+  selector:
+    matchLabels:
+      app: client
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: "2020-04-30T06:15:40Z"
+      labels:
+        app: client
+    spec:
+      containers:
+      - args:
+        - server
+        image: tahler/fortio:prometheus
+        name: fortio-client
+        ports:
+        - containerPort: 8080
+        - containerPort: 42422
+        resources: {}
+status: {}

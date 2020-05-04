@@ -1,18 +1,8 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  creationTimestamp: "2020-04-30T08:25:38Z"
-  labels:
-    istio-injection: enabled
-  name: service-graph
-spec: {}
-status: {}
----
-apiVersion: v1
 data:
   service-graph: |
     defaults:
-      fortio_cluster: some_context_string
+      fortio_cluster: gke_istio-testing-270515_asia-southeast1_istio-spike-1
       ingress_gateway_endpoint: x.x.x.x
     services:
     - cluster_context: context_string
@@ -24,16 +14,26 @@ data:
       type: http
 kind: ConfigMap
 metadata:
-  creationTimestamp: "2020-04-30T08:25:38Z"
+  creationTimestamp: "2020-04-30T06:15:40Z"
   labels:
     app: service-graph
   name: service-graph-config
   namespace: service-graph
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: "2020-04-30T06:15:40Z"
+  labels:
+    istio-injection: enabled
+  name: service-graph
+spec: {}
+status: {}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  creationTimestamp: "2020-04-30T08:25:38Z"
+  creationTimestamp: "2020-04-30T06:15:40Z"
   labels:
     app: service-graph
   name: a
@@ -48,17 +48,18 @@ spec:
     metadata:
       annotations:
         prometheus.io/scrape: "true"
-      creationTimestamp: "2020-04-30T08:25:38Z"
+      creationTimestamp: "2020-04-30T06:15:40Z"
       labels:
         name: a
         role: service
     spec:
       containers:
       - args:
-        - --max-idle-connections-per-host=0
+        - --max-idle-connections-per-host=64
         env:
         - name: SERVICE_NAME
           value: a
+        image: tahler/isotope-service:1
         name: mock-service
         ports:
         - containerPort: 8080
@@ -74,21 +75,3 @@ spec:
           name: service-graph-config
         name: config-volume
 status: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  creationTimestamp: "2020-04-30T08:25:38Z"
-  labels:
-    app: service-graph
-  name: a
-  namespace: service-graph
-spec:
-  ports:
-  - name: http-web
-    port: 8080
-    targetPort: 0
-  selector:
-    name: a
-status:
-  loadBalancer: {}

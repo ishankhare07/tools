@@ -41,19 +41,14 @@ function run_test() {
   # kubectl create ns "${ns}" || true
   # kubectl label namespace "${ns}" "${INJECTION_LABEL:-istio-injection=enabled}" --overwrite
 
-
   if [[ -z "${DELETE}" ]];then
     sleep 3
     for manifest in ${manifestDir}/*.yaml; do
-	# kubectl apply -f "${manifestDir}/${manifest}" --context "$(echo ${mainfest} | cut -d'.' -f1)"
-	echo "context" "$(echo ${mainfest} | cut -d'.' -f1)"
-	echo "filename" "${manifest}"
+       kubectl apply -f "${manifest}" --context "$(echo ${manifest} | cut -d'.' -f1 | cut -d'/' -f2)" --dry-run -o yaml
     done
   else
     for manifest in ${manifestDirectory}/*.yaml; do
-	# kubectl delete -f "${manifestDir}/${manifest}" --context "$(echo ${mainfest} | cut -d'.' -f1)"|| true
-	echo "context" "$(echo ${mainfest} | cut -d'.' -f1)"
-	echo "filename" "${manifestDir}/${manifest}"
+      kubectl delete -f "${manifest}" --context "$(echo ${manifest} | cut -d'.' -f1 | cut -d'/' -f2)" --dry-run -o yaml
     done
     # kubectl delete ns "${ns}"
   fi
