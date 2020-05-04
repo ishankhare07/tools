@@ -48,11 +48,13 @@ func (g *ServiceGraph) UnmarshalJSON(b []byte) (err error) {
 }
 
 func parseJSONServiceGraphWithDefaults(
-	b []byte, defaults defaults) (sg ServiceGraph, err error) {
+	b []byte, defaults Defaults) (sg ServiceGraph, err error) {
 	withGlobalDefaults(defaults, func() {
 		var unmarshallable unmarshallableServiceGraph
 		innerErr := json.Unmarshal(b, &unmarshallable)
 		if innerErr == nil {
+			// to exclude defaults from unmarshalling to struct
+			unmarshallable.Defaults = Defaults{}
 			sg = ServiceGraph(unmarshallable)
 		} else {
 			err = innerErr
@@ -64,7 +66,7 @@ func parseJSONServiceGraphWithDefaults(
 // defaultDefaults is a stuttery but validly semantic name for the default
 // values when parsing JSON defaults.
 var (
-	defaultDefaults = defaults{
+	defaultDefaults = Defaults{
 		Type:        svctype.ServiceHTTP,
 		NumReplicas: 1,
 	}
@@ -72,10 +74,10 @@ var (
 )
 
 type serviceGraphJSONMetadata struct {
-	Defaults defaults `json:"defaults"`
+	Defaults Defaults `json:"defaults"`
 }
 
-type defaults struct {
+type Defaults struct {
 	Type            svctype.ServiceType `json:"type"`
 	ErrorRate       pct.Percentage      `json:"errorRate"`
 	ResponseSize    size.ByteSize       `json:"responseSize"`
@@ -85,7 +87,7 @@ type defaults struct {
 	NumRbacPolicies int32               `json:"numRbacPolicies"`
 }
 
-func withGlobalDefaults(defaults defaults, f func()) {
+func withGlobalDefaults(defaults Defaults, f func()) {
 	defaultMutex.Lock()
 
 	origDefaultService := svc.DefaultService

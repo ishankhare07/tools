@@ -21,6 +21,7 @@ import "istio.io/tools/isotope/convert/pkg/graph/svc"
 type ServiceGraph struct {
 	Global   ServiceDefaults `json:"global,omitempty"`
 	Services []svc.Service   `json:"services"`
+	Defaults Defaults        `json:"defaults"`
 }
 
 type ServiceDefaults struct {
