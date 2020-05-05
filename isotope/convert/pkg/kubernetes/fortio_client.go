@@ -44,6 +44,9 @@ func makeFortioDeployment(
 		Template: apiv1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: fortioClientLabels,
+				Annotations: map[string]string{
+					"sidecar.istio.io/inject": "false",
+				},
 			},
 			Spec: apiv1.PodSpec{
 				NodeSelector: nodeSelector,
