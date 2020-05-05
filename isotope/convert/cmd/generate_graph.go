@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"os"
+	"istio.io/tools/isotope/convert/pkg/output"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -47,14 +47,11 @@ var generateGraphCmd = &cobra.Command{
 
 		svcGraph := graph.GenerateRandomServiceGraph(numberOfServices, requestSize, responseSize, clusterList, ingressGatewayEndpoint, graph.GetRandomFromRange)
 
-		b, err := yaml.Marshal(svcGraph)
+		serviceGraphByte, err := yaml.Marshal(svcGraph)
 		exitIfError(err)
 
-		f, err := os.Create(targetFilename)
-		defer f.Close()
+		err = output.CreateAndPopulateFile(targetFilename, string(serviceGraphByte))
 		exitIfError(err)
-
-		f.Write(b)
 	},
 }
 

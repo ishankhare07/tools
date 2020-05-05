@@ -70,7 +70,7 @@ var kubernetesCmd = &cobra.Command{
 			serviceMaxIdleConnectionsPerHost, clientNodeSelector, clientImage, environmentName)
 		exitIfError(err)
 
-		err = output.CreateAndPopulateFiles("manifests", manifests)
+		err = output.CreateAndPopulateFilesInDirectory("manifests", manifests)
 		exitIfError(err)
 	},
 }

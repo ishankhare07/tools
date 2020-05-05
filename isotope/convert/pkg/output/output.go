@@ -7,7 +7,7 @@ import (
 	k8s "istio.io/tools/isotope/convert/pkg/kubernetes"
 )
 
-func CreateAndPopulateFiles(dir string, manifestMap k8s.ManifestMap) error {
+func CreateAndPopulateFilesInDirectory(dir string, manifestMap k8s.ManifestMap) error {
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err := os.Mkdir(dir, os.ModeDir|0777)
 		if err != nil {
@@ -15,22 +15,24 @@ func CreateAndPopulateFiles(dir string, manifestMap k8s.ManifestMap) error {
 		}
 	}
 
-	for k, v := range manifestMap {
-		err := func(k string, v string) error {
-			f, err := os.Create(fmt.Sprintf("%s/%s.yaml", dir, k))
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-
-			f.WriteString(v)
-			return nil
-		}(k, v)
+	for fileName, fileContent := range manifestMap {
+		err := CreateAndPopulateFile(fmt.Sprintf("%s/%s.yaml", dir, fileName), fileContent)
 
 		if err != nil {
 			return err
 		}
 	}
 
+	return nil
+}
+
+func CreateAndPopulateFile(fileName string, fileContent string) error {
+	f, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	f.WriteString(fileContent)
 	return nil
 }
