@@ -78,13 +78,13 @@ type serviceGraphJSONMetadata struct {
 }
 
 type Defaults struct {
-	Type            svctype.ServiceType `json:"type"`
-	ErrorRate       pct.Percentage      `json:"errorRate"`
-	ResponseSize    size.ByteSize       `json:"responseSize"`
-	Script          script.Script       `json:"script"`
-	RequestSize     size.ByteSize       `json:"requestSize"`
-	NumReplicas     int32               `json:"numReplicas"`
-	NumRbacPolicies int32               `json:"numRbacPolicies"`
+	Type            svctype.ServiceType `json:"type,omitempty"`
+	ErrorRate       pct.Percentage      `json:"errorRate,omitempty"`
+	ResponseSize    size.ByteSize       `json:"responseSize,omitempty"`
+	Script          script.Script       `json:"script,omitempty"`
+	RequestSize     size.ByteSize       `json:"requestSize,omitempty"`
+	NumReplicas     int32               `json:"numReplicas,omitempty"`
+	NumRbacPolicies int32               `json:"numRbacPolicies,omitempty"`
 }
 
 func withGlobalDefaults(defaults Defaults, f func()) {

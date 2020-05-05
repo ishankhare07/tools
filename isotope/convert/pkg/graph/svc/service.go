@@ -47,7 +47,7 @@ type Service struct {
 	Script script.Script `json:"script,omitempty"`
 
 	// NumRbacPolicies is the number of policies generated for each service.
-	NumRbacPolicies int32 `json:"numRbacPolicies"`
+	NumRbacPolicies int32 `json:"numRbacPolicies,omitempty"`
 
 	// Cluster context of the cluster this service will be deployed on
 	ClusterContext string `json:"cluster_context,omitempty"`

@@ -27,8 +27,8 @@ import (
 
 // generateGraphCmd represents the generateGraph command
 var generateGraphCmd = &cobra.Command{
-	Use:   "generateGraph",
-	Short: "A brief description of your command",
+	Use:   "generate-graph [output.yaml]",
+	Short: "Generate isotope config yaml",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		numberOfServices, err := cmd.PersistentFlags().GetInt("number-of-services")
@@ -70,13 +70,4 @@ func init() {
 		"cluster-list", "", "Comma separated list of cluster contexts")
 	generateGraphCmd.PersistentFlags().String(
 		"ingress-gateway-endpoint", "", "IP to ingress gateway")
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// generateGraphCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// generateGraphCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
