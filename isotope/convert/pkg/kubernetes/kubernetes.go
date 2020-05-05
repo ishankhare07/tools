@@ -213,7 +213,7 @@ func makeService(service svc.Service) (k8sService apiv1.Service) {
 	k8sService.Kind = "Service"
 	k8sService.ObjectMeta.Name = service.Name
 	k8sService.ObjectMeta.Namespace = ServiceGraphNamespace
-	k8sService.ObjectMeta.Labels = getServiceLabels(service)
+	k8sService.ObjectMeta.Labels = serviceGraphAppLabels
 	timestamp(&k8sService.ObjectMeta)
 	if service.Type.String() == "HTTP" {
 		k8sService.Spec.Ports = []apiv1.ServicePort{
@@ -234,18 +234,22 @@ func makeDeployment(
 	k8sDeployment.Kind = "Deployment"
 	k8sDeployment.ObjectMeta.Name = service.Name
 	k8sDeployment.ObjectMeta.Namespace = ServiceGraphNamespace
-	k8sDeployment.ObjectMeta.Labels = getServiceLabels(service)
+	k8sDeployment.ObjectMeta.Labels = serviceGraphAppLabels
 	timestamp(&k8sDeployment.ObjectMeta)
 	k8sDeployment.Spec = appsv1.DeploymentSpec{
 		Replicas: &service.NumReplicas,
 		Selector: &metav1.LabelSelector{
-			MatchLabels: getServiceLabels(service),
+			MatchLabels: map[string]string{
+				"name": service.Name,
+			},
 		},
 		Template: apiv1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: combineLabels(
 					serviceGraphNodeLabels,
-					getServiceLabels(service)),
+					map[string]string{
+						"name": service.Name,
+					}),
 				Annotations: prometheusScrapeAnnotations,
 			},
 			Spec: apiv1.PodSpec{
@@ -298,10 +302,6 @@ func makeDeployment(
 	}
 	timestamp(&k8sDeployment.Spec.Template.ObjectMeta)
 	return
-}
-
-func getServiceLabels(service svc.Service) map[string]string {
-	return map[string]string{"app": service.Name}
 }
 
 func timestamp(objectMeta *metav1.ObjectMeta) {
