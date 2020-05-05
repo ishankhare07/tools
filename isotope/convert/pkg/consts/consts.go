@@ -20,8 +20,11 @@ const (
 
 	// ServicePort is the port the service will run on.
 	ServicePort = 8080
-	// ServicePortName is the name of the service port.
-	ServicePortName = "http-web"
+	// HttpServicePortName is the name of the service port for HTTP type.
+	HttpServicePortName = "http-web"
+
+	// HttpServicePortName is the name of the service port for GRPC type.
+	GrpcServicePortName = "grpc-web"
 
 	// ServiceGraphNamespace is the name of the namespace that all service graph
 	// related components will live in.
