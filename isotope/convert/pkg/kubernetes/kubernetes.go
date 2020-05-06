@@ -17,6 +17,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"istio.io/tools/isotope/convert/pkg/graph/script"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"math/rand"
 	"strings"
@@ -117,6 +118,17 @@ func ServiceGraphToKubernetesManifests(
 			return nil, innerErr
 		}
 
+		serviceDependencies, dependencyErr := createServiceDependencies(service, serviceGraph)
+		if dependencyErr != nil {
+			return nil, dependencyErr
+		}
+		for _, serviceDependency := range serviceDependencies {
+			innerErr = appendManifest(service.ClusterContext, serviceDependency)
+			if innerErr != nil {
+				return nil, innerErr
+			}
+		}
+
 		// Only generates the RBAC rules when Istio is installed.
 		if strings.EqualFold(environmentName, "ISTIO") && service.NumRbacPolicies > 0 {
 			hasRbacPolicy = true
@@ -168,6 +180,45 @@ func ServiceGraphToKubernetesManifests(
 	}
 
 	return returnMap, nil
+}
+
+func createServiceDependencies(service svc.Service, serviceGraph graph.ServiceGraph) ([]apiv1.Service, error) {
+	serviceDependencies := []apiv1.Service{}
+
+	for _, commandScript := range service.Script {
+		serviceDependency, err := generateDependencies(commandScript, serviceGraph, service.ClusterContext)
+		if err != nil {
+			return []apiv1.Service{}, err
+		}
+		serviceDependencies = append(serviceDependencies, serviceDependency...)
+	}
+
+	return serviceDependencies, nil
+}
+
+func generateDependencies(commandScript script.Command, serviceGraph graph.ServiceGraph, serviceCluster string) ([]apiv1.Service, error) {
+	switch command := commandScript.(type) {
+	case script.RequestCommand:
+		downstreamService, err := serviceGraph.FindServiceByName(command.ServiceName)
+		if err != nil {
+			return nil, err
+		}
+		if serviceCluster != downstreamService.ClusterContext {
+			k8sService := makeService(downstreamService)
+			return []apiv1.Service{k8sService}, nil
+		}
+	case script.ConcurrentCommand:
+		conccurentDependecies := []apiv1.Service{}
+		for _, innerCommand := range command {
+			dependencies, err := generateDependencies(innerCommand, serviceGraph, serviceCluster)
+			if err != nil {
+				return nil, err
+			}
+			conccurentDependecies = append(conccurentDependecies, dependencies...)
+		}
+		return conccurentDependecies, nil
+	}
+	return nil, nil
 }
 
 func combineLabels(a, b map[string]string) map[string]string {

@@ -14,7 +14,10 @@
 
 package graph
 
-import "istio.io/tools/isotope/convert/pkg/graph/svc"
+import (
+	"fmt"
+	"istio.io/tools/isotope/convert/pkg/graph/svc"
+)
 
 // ServiceGraph describes a set of services which mock a service-oriented
 // architecture.
@@ -27,4 +30,14 @@ type ServiceGraph struct {
 type ServiceDefaults struct {
 	FortioCluster          string `json:"fortio_cluster,omitempty"`
 	IngressGatewayEndpoint string `json:"ingress_gateway_endpoint,omitempty"`
+}
+
+func (serviceGraph ServiceGraph) FindServiceByName(serviceName string) (svc.Service, error) {
+	for _, service := range serviceGraph.Services {
+		if service.Name == serviceName {
+			return service, nil
+		}
+	}
+
+	return svc.Service{}, fmt.Errorf("%s is not found", serviceName)
 }
