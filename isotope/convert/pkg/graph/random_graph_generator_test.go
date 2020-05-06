@@ -42,13 +42,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
-				Script: script.Script{
-					script.ConcurrentCommand{
-						script.RequestCommand{
-							ServiceName: "s0",
-						},
-					},
-				},
+				Script:         script.Script{},
 			},
 		},
 		Global: ServiceDefaults{
@@ -62,6 +56,15 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(svcGraph.Services, expectedGraph.Services) {
-		t.Errorf("Services do not match")
+		t.Errorf("Services do not match\n%#v\n%#v", expectedGraph.Services, svcGraph.Services)
+	}
+}
+
+func TestGetAllNodesAtLevel(t *testing.T) {
+	nodes := getAllNodesAtLevel(2, 5)
+	expected := []int{3, 4}
+
+	if !reflect.DeepEqual(nodes, expected) {
+		t.Errorf("Not correct list of nodes, expected %#v, got %#v", expected, nodes)
 	}
 }

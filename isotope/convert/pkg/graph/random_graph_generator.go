@@ -2,6 +2,7 @@ package graph
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 
@@ -47,17 +48,56 @@ func GenerateRandomServiceGraph(numberOfService int,
 	return *serviceGraph
 }
 
-func getTargetRequestCommands(serviceToSkip, numOfServices int) script.Script {
+func getLevel(nodeIndex int) int {
+	height := math.Ceil(math.Log2(float64(nodeIndex+1)) - 1)
+	return int(height)
+}
+
+func getAllNodesAtLevel(level, maxNodes int) []int {
+	firstElement := math.Pow(float64(2), float64(level)) - 1
+	numOfIterations := math.Pow(float64(2), float64(level))
+
+	nodes := []int{}
+
+	for i, j := firstElement, 0; j < int(numOfIterations) && int(i) < maxNodes; i, j = i+1, j+1 {
+		nodes = append(nodes, int(i))
+	}
+
+	return nodes
+}
+
+func makeRequestCommand(child int) script.RequestCommand {
+	requestCommand := script.RequestCommand{
+		ServiceName: fmt.Sprintf("s%d", child),
+	}
+
+	return requestCommand
+}
+
+func getTargetRequestCommands(currentNode, numOfNodes int) script.Script {
 	concurrentCommand := script.ConcurrentCommand{}
 
-	for i := 0; i < numOfServices; i++ {
-		if i != serviceToSkip {
-			requestCommand := script.RequestCommand{
-				ServiceName: fmt.Sprintf("s%d", i),
-			}
+	maxHeight := getLevel(numOfNodes)
+	currentLevel := getLevel(currentNode + 1)
 
-			concurrentCommand = append(concurrentCommand, requestCommand)
+	if currentLevel == maxHeight-1 {
+		// connect to all nodes in the level below
+		nodes := getAllNodesAtLevel(maxHeight, numOfNodes)
+		for _, i := range nodes {
+			concurrentCommand = append(concurrentCommand, makeRequestCommand(i))
 		}
+	} else {
+		// connect to childs
+		for i := 1; i < 3; i++ {
+			child := 2*currentNode + 1
+			if child <= numOfNodes {
+				concurrentCommand = append(concurrentCommand, makeRequestCommand(child))
+			}
+		}
+	}
+
+	if len(concurrentCommand) == 0 {
+		return script.Script{}
 	}
 
 	return script.Script{concurrentCommand}
