@@ -44,11 +44,11 @@ function run_test() {
   if [[ -z "${DELETE}" ]];then
     sleep 3
     for manifest in ${manifestDir}/*.yaml; do
-       kubectl apply -f "${manifest}" --context "$(echo ${manifest} | cut -d'.' -f1 | cut -d'/' -f2)" --dry-run -o yaml
+       kubectl apply -f "${manifest}" --context "$(echo ${manifest} | cut -d'.' -f1 | cut -d'/' -f2)"
     done
   else
-    for manifest in ${manifestDirectory}/*.yaml; do
-      kubectl delete -f "${manifest}" --context "$(echo ${manifest} | cut -d'.' -f1 | cut -d'/' -f2)" --dry-run -o yaml
+    for manifest in ${manifestDir}/*.yaml; do
+      kubectl delete -f "${manifest}" --context "$(echo ${manifest} | cut -d'.' -f1 | cut -d'/' -f2)"
     done
     # kubectl delete ns "${ns}"
   fi
