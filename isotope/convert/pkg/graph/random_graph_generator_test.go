@@ -14,7 +14,7 @@ func MockGenerator(min, max int) int {
 }
 
 func TestGenerateRandomServiceGraph(t *testing.T) {
-	numberOfService := 2
+	numberOfService := 5
 	requestSize := 5
 	responseSize := 5
 	clusterList := []string{"cluster0", "cluster1"}
@@ -34,11 +34,53 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 						script.RequestCommand{
 							ServiceName: "s1",
 						},
+						script.RequestCommand{
+							ServiceName: "s2",
+						},
 					},
 				},
 			},
 			{
 				Name:           "s1",
+				Type:           svctype.ServiceHTTP,
+				NumReplicas:    6,
+				ClusterContext: "cluster1",
+				Script: script.Script{
+					script.ConcurrentCommand{
+						script.RequestCommand{
+							ServiceName: "s3",
+						},
+						script.RequestCommand{
+							ServiceName: "s4",
+						},
+					},
+				},
+			},
+			{
+				Name:           "s2",
+				Type:           svctype.ServiceHTTP,
+				NumReplicas:    6,
+				ClusterContext: "cluster1",
+				Script: script.Script{
+					script.ConcurrentCommand{
+						script.RequestCommand{
+							ServiceName: "s3",
+						},
+						script.RequestCommand{
+							ServiceName: "s4",
+						},
+					},
+				},
+			},
+			{
+				Name:           "s3",
+				Type:           svctype.ServiceHTTP,
+				NumReplicas:    6,
+				ClusterContext: "cluster1",
+				Script:         script.Script{},
+			},
+			{
+				Name:           "s4",
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",

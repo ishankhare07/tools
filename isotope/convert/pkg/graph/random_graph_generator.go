@@ -89,7 +89,7 @@ func getTargetRequestCommands(currentNode, numOfNodes int) script.Script {
 	} else {
 		// connect to childs
 		for i := 1; i < 3; i++ {
-			child := 2*currentNode + 1
+			child := 2*currentNode + i
 			if child <= numOfNodes {
 				concurrentCommand = append(concurrentCommand, makeRequestCommand(child))
 			}
