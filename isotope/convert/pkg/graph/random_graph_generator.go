@@ -36,7 +36,7 @@ func GenerateRandomServiceGraph(numberOfService int,
 	for i := 0; i < numberOfService; i++ {
 		s := svc.Service{
 			Name:           fmt.Sprintf("s%d", i),
-			Type:           getRandomServiceType(generator),
+			Type:           svctype.ServiceType(svctype.ServiceHTTP),
 			NumReplicas:    defaultNumReplicas,
 			ClusterContext: getRandomCluster(listOfClusters, generator),
 			Script:         getTargetRequestCommands(i, numberOfService),
@@ -105,13 +105,6 @@ func getTargetRequestCommands(currentNode, numOfNodes int) script.Script {
 
 func GetRandomFromRange(min, max int) int {
 	return rand.Intn(max-min) + min
-}
-
-func getRandomServiceType(generator RandomFromRange) svctype.ServiceType {
-	//min := 1
-	//max := 3 // max is not included in range
-	//return svctype.ServiceType(generator(min, max))
-	return svctype.ServiceType(svctype.ServiceHTTP)
 }
 
 func generateServiceDefaults(listOfClusters []string, ingressGatewayEndpoint string, generator RandomFromRange) ServiceDefaults {
