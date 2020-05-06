@@ -48,7 +48,7 @@ func GenerateRandomServiceGraph(numberOfService int,
 }
 
 func getTargetRequestCommands(serviceToSkip, numOfServices int) script.Script {
-	requestCommands := script.Script{}
+	concurrentCommand := script.ConcurrentCommand{}
 
 	for i := 0; i < numOfServices; i++ {
 		if i != serviceToSkip {
@@ -56,11 +56,11 @@ func getTargetRequestCommands(serviceToSkip, numOfServices int) script.Script {
 				ServiceName: fmt.Sprintf("s%d", i),
 			}
 
-			requestCommands = append(requestCommands, requestCommand)
+			concurrentCommand = append(concurrentCommand, requestCommand)
 		}
 	}
 
-	return requestCommands
+	return script.Script{concurrentCommand}
 }
 
 func GetRandomFromRange(min, max int) int {

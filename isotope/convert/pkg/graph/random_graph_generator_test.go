@@ -30,8 +30,8 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
 				Script: script.Script{
-					[]script.RequestCommand{
-						{
+					script.ConcurrentCommand{
+						script.RequestCommand{
 							ServiceName: "s1",
 						},
 					},
@@ -43,8 +43,8 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
 				Script: script.Script{
-					[]script.RequestCommand{
-						{
+					script.ConcurrentCommand{
+						script.RequestCommand{
 							ServiceName: "s0",
 						},
 					},
