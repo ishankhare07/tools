@@ -68,10 +68,10 @@ func GetRandomFromRange(min, max int) int {
 }
 
 func getRandomServiceType(generator RandomFromRange) svctype.ServiceType {
-	min := 1
-	max := 3 // max is not included in range
-	return svctype.ServiceType(generator(min, max))
-	// return svctype.ServiceType(2)
+	//min := 1
+	//max := 3 // max is not included in range
+	//return svctype.ServiceType(generator(min, max))
+	return svctype.ServiceType(svctype.ServiceHTTP)
 }
 
 func generateServiceDefaults(listOfClusters []string, ingressGatewayEndpoint string, generator RandomFromRange) ServiceDefaults {

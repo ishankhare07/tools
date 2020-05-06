@@ -134,7 +134,7 @@ func ServiceGraphToKubernetesManifests(
 		clientNodeSelector,
 		clientImage,
 		serviceGraph.Global.IngressGatewayEndpoint,
-		fmt.Sprintf("%s.%s", serviceGraph.Services[0].Name, consts.ServiceGraphNamespace))
+		fmt.Sprintf("%s.%s.svc.cluster.local", serviceGraph.Services[0].Name, consts.ServiceGraphNamespace))
 	if err := appendManifest(serviceGraph.Global.FortioCluster, fortioDeployment); err != nil {
 		return nil, err
 	}
