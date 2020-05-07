@@ -20,7 +20,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 	clusterList := []string{"cluster0", "cluster1"}
 	ingressEndpoint := "x.x.x.x"
 
-	svcGraph := GenerateRandomServiceGraph(numberOfService, requestSize, responseSize, clusterList, ingressEndpoint, MockGenerator)
+	svcGraph := GenerateRandomServiceGraph(numberOfService, 5, requestSize, responseSize, clusterList, ingressEndpoint, MockGenerator)
 
 	expectedGraph := ServiceGraph{
 		Services: []svc.Service{
@@ -103,8 +103,8 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 }
 
 func TestGetAllNodesAtLevel(t *testing.T) {
-	nodes := getAllNodesAtLevel(2, 5)
-	expected := []int{3, 4}
+	nodes := getAllNodesAtLevel(15, 3)
+	expected := []int{}
 
 	if !reflect.DeepEqual(nodes, expected) {
 		t.Errorf("Not correct list of nodes, expected %#v, got %#v", expected, nodes)

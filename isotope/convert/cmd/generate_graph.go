@@ -16,8 +16,9 @@ limitations under the License.
 package cmd
 
 import (
-	"istio.io/tools/isotope/convert/pkg/output"
 	"strings"
+
+	"istio.io/tools/isotope/convert/pkg/output"
 
 	"github.com/ghodss/yaml"
 
@@ -33,6 +34,8 @@ var generateGraphCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		numberOfServices, err := cmd.PersistentFlags().GetInt("number-of-services")
 		exitIfError(err)
+		maxSubtreeSize, err := cmd.PersistentFlags().GetInt("subtree-size")
+		exitIfError(err)
 		requestSize, err := cmd.PersistentFlags().GetInt("request-size")
 		exitIfError(err)
 		responseSize, err := cmd.PersistentFlags().GetInt("response-size")
@@ -45,7 +48,7 @@ var generateGraphCmd = &cobra.Command{
 
 		targetFilename := args[0]
 
-		svcGraph := graph.GenerateRandomServiceGraph(numberOfServices, requestSize, responseSize, clusterList, ingressGatewayEndpoint, graph.GetRandomFromRange)
+		svcGraph := graph.GenerateRandomServiceGraph(numberOfServices, maxSubtreeSize, requestSize, responseSize, clusterList, ingressGatewayEndpoint, graph.GetRandomFromRange)
 
 		serviceGraphByte, err := yaml.Marshal(svcGraph)
 		exitIfError(err)
@@ -59,6 +62,8 @@ func init() {
 	rootCmd.AddCommand(generateGraphCmd)
 	generateGraphCmd.PersistentFlags().Int(
 		"number-of-services", 0, "Number of service which will be created")
+	generateGraphCmd.PersistentFlags().Int(
+		"subtree-size", 5, "Max size of each subtree")
 	generateGraphCmd.PersistentFlags().Int(
 		"request-size", 10000, "Request size in bytes")
 	generateGraphCmd.PersistentFlags().Int(

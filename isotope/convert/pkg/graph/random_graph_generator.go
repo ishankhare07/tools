@@ -20,7 +20,8 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func GenerateRandomServiceGraph(numberOfService int,
+func GenerateRandomServiceGraph(numberOfServices int,
+	maxSubtreeSize int,
 	requestSize int,
 	responseSize int,
 	listOfClusters []string,
@@ -33,16 +34,18 @@ func GenerateRandomServiceGraph(numberOfService int,
 		RequestSize:  size.ByteSize(requestSize),
 	}
 
-	for i := 0; i < numberOfService; i++ {
-		s := svc.Service{
-			Name:           fmt.Sprintf("s%d", i),
-			Type:           svctype.ServiceType(svctype.ServiceHTTP),
-			NumReplicas:    defaultNumReplicas,
-			ClusterContext: getRandomCluster(listOfClusters, generator),
-			Script:         getTargetRequestCommands(i, numberOfService),
-		}
+	for subTree := 0; subTree < (numberOfServices/maxSubtreeSize)+1; subTree++ {
+		for i := 0; i < maxSubtreeSize; i++ {
+			s := svc.Service{
+				Name:           fmt.Sprintf("s%d", (subTree*maxSubtreeSize)+i),
+				Type:           svctype.ServiceType(svctype.ServiceHTTP),
+				NumReplicas:    defaultNumReplicas,
+				ClusterContext: getRandomCluster(listOfClusters, generator),
+				Script:         getTargetRequestCommands(i, maxSubtreeSize, subTree*maxSubtreeSize, i+maxSubtreeSize-1),
+			}
 
-		serviceGraph.Services = append(serviceGraph.Services, s)
+			serviceGraph.Services = append(serviceGraph.Services, s)
+		}
 	}
 
 	return *serviceGraph
@@ -74,7 +77,10 @@ func makeRequestCommand(child int) script.RequestCommand {
 	return requestCommand
 }
 
-func getTargetRequestCommands(currentNode, numOfNodes int) script.Script {
+func getTargetRequestCommands(currentNode,
+	numOfNodes,
+	startLabel,
+	endLabel int) script.Script {
 	concurrentCommand := script.ConcurrentCommand{}
 
 	maxHeight := getLevel(numOfNodes)
@@ -84,14 +90,16 @@ func getTargetRequestCommands(currentNode, numOfNodes int) script.Script {
 		// connect to all nodes in the level below
 		nodes := getAllNodesAtLevel(maxHeight, numOfNodes)
 		for _, i := range nodes {
-			concurrentCommand = append(concurrentCommand, makeRequestCommand(i))
+			label := startLabel + i
+			concurrentCommand = append(concurrentCommand, makeRequestCommand(label))
 		}
 	} else {
 		// connect to childs
 		for i := 1; i < 3; i++ {
 			child := 2*currentNode + i
-			if child <= numOfNodes {
-				concurrentCommand = append(concurrentCommand, makeRequestCommand(child))
+			if child < numOfNodes {
+				label := startLabel + child
+				concurrentCommand = append(concurrentCommand, makeRequestCommand(label))
 			}
 		}
 	}
