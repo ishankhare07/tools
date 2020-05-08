@@ -34,7 +34,7 @@ var generateGraphCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		numberOfServices, err := cmd.PersistentFlags().GetInt("number-of-services")
 		exitIfError(err)
-		maxSubtreeSize, err := cmd.PersistentFlags().GetInt("subtree-size")
+		maxSubtreeSize, err := cmd.PersistentFlags().GetInt("max-subtree-level")
 		exitIfError(err)
 		requestSize, err := cmd.PersistentFlags().GetInt("request-size")
 		exitIfError(err)
@@ -63,7 +63,7 @@ func init() {
 	generateGraphCmd.PersistentFlags().Int(
 		"number-of-services", 0, "Number of service which will be created")
 	generateGraphCmd.PersistentFlags().Int(
-		"subtree-size", 5, "Max size of each subtree")
+		"max-subtree-level", 5, "Max level of each subtree")
 	generateGraphCmd.PersistentFlags().Int(
 		"request-size", 10000, "Request size in bytes")
 	generateGraphCmd.PersistentFlags().Int(

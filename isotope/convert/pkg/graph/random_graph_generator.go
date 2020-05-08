@@ -2,14 +2,14 @@ package graph
 
 import (
 	"fmt"
+	"istio.io/tools/isotope/convert/pkg/graph/svc"
+	"istio.io/tools/isotope/convert/pkg/graph/svctype"
 	"math"
 	"math/rand"
 	"time"
 
 	"istio.io/tools/isotope/convert/pkg/graph/script"
 	"istio.io/tools/isotope/convert/pkg/graph/size"
-	"istio.io/tools/isotope/convert/pkg/graph/svc"
-	"istio.io/tools/isotope/convert/pkg/graph/svctype"
 )
 
 const defaultNumReplicas = 6
@@ -21,7 +21,7 @@ func init() {
 }
 
 func GenerateRandomServiceGraph(numberOfServices int,
-	maxSubtreeSize int,
+	subTreeHeight int,
 	requestSize int,
 	responseSize int,
 	listOfClusters []string,
@@ -34,14 +34,16 @@ func GenerateRandomServiceGraph(numberOfServices int,
 		RequestSize:  size.ByteSize(requestSize),
 	}
 
-	for subTree := 0; subTree < (numberOfServices/maxSubtreeSize)+1; subTree++ {
-		for i := 0; i < maxSubtreeSize; i++ {
+	for subTree := 0; subTree < int(math.Ceil(float64(numberOfServices)/float64(getMaxNodesOfSubtree(subTreeHeight)))); subTree++ {
+		for node := 0; node < getMaxNodesOfSubtree(subTreeHeight); node++ {
+			isRootNode := node == subTree * getMaxNodesOfSubtree(subTreeHeight)
 			s := svc.Service{
-				Name:           fmt.Sprintf("s%d", (subTree*maxSubtreeSize)+i),
-				Type:           svctype.ServiceType(svctype.ServiceHTTP),
-				NumReplicas:    defaultNumReplicas,
-				ClusterContext: getRandomCluster(listOfClusters, generator),
-				Script:         getTargetRequestCommands(i, maxSubtreeSize, subTree*maxSubtreeSize, i+maxSubtreeSize-1),
+				Name:            fmt.Sprintf("s%d", subTree*getMaxNodesOfSubtree(subTreeHeight)+node),
+				Type:            svctype.ServiceType(svctype.ServiceHTTP),
+				NumReplicas:     defaultNumReplicas,
+				IsEntrypoint:    isRootNode,
+				Script:          getTargetRequestCommands(node, getMaxNodesOfSubtree(subTreeHeight), subTree*getMaxNodesOfSubtree(subTreeHeight)),
+				ClusterContext:  getRandomCluster(listOfClusters, generator),
 			}
 
 			serviceGraph.Services = append(serviceGraph.Services, s)
@@ -49,6 +51,10 @@ func GenerateRandomServiceGraph(numberOfServices int,
 	}
 
 	return *serviceGraph
+}
+
+func getMaxNodesOfSubtree(height int) int {
+	return int(math.Pow(float64(2), float64(height+1)) - 1)
 }
 
 func getLevel(nodeIndex int) int {
@@ -79,8 +85,7 @@ func makeRequestCommand(child int) script.RequestCommand {
 
 func getTargetRequestCommands(currentNode,
 	numOfNodes,
-	startLabel,
-	endLabel int) script.Script {
+	startLabel int) script.Script {
 	concurrentCommand := script.ConcurrentCommand{}
 
 	maxHeight := getLevel(numOfNodes)
