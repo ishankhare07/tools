@@ -31,19 +31,19 @@ func makeFortioDeployment(
 	nodeSelector map[string]string,
 	clientImage string,
 	ingressGatewayEndpoint string,
-	serviceHostHeader string) (deployment appsv1.Deployment) {
+	downstreamServiceName string) (deployment appsv1.Deployment) {
 	deployment.APIVersion = "apps/v1"
 	deployment.Kind = "Deployment"
-	deployment.ObjectMeta.Name = "client"
+	deployment.ObjectMeta.Name = fmt.Sprintf("client-%s", downstreamServiceName)
 	deployment.ObjectMeta.Labels = fortioClientLabels
 	timestamp(&deployment.ObjectMeta)
 	deployment.Spec = appsv1.DeploymentSpec{
 		Selector: &metav1.LabelSelector{
-			MatchLabels: fortioClientLabels,
+			MatchLabels: map[string]string{"app": fmt.Sprintf("client-%s", downstreamServiceName)},
 		},
 		Template: apiv1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: fortioClientLabels,
+				Labels: map[string]string{"app": fmt.Sprintf("client-%s", downstreamServiceName)},
 				Annotations: map[string]string{
 					"sidecar.istio.io/inject": "false",
 				},
@@ -65,7 +65,7 @@ func makeFortioDeployment(
 							"-r",
 							"0.0001",
 							"-H",
-							fmt.Sprintf("Host: %s", serviceHostHeader),
+							fmt.Sprintf("Host: %s.%s.svc.cluster.local", downstreamServiceName, consts.ServiceGraphNamespace),
 							fmt.Sprintf("http://%s", ingressGatewayEndpoint),
 						},
 						Ports: []apiv1.ContainerPort{
@@ -85,14 +85,14 @@ func makeFortioDeployment(
 	return
 }
 
-func makeFortioService() (service apiv1.Service) {
+func makeFortioService(downstreamServiceName string) (service apiv1.Service) {
 	service.APIVersion = "v1"
 	service.Kind = "Service"
-	service.ObjectMeta.Name = "client"
+	service.ObjectMeta.Name = fmt.Sprintf("client-%s", downstreamServiceName)
 	service.ObjectMeta.Labels = fortioClientLabels
 	service.ObjectMeta.Annotations = prometheusScrapeAnnotations
 	timestamp(&service.ObjectMeta)
 	service.Spec.Ports = []apiv1.ServicePort{{Port: consts.ServicePort}}
-	service.Spec.Selector = fortioClientLabels
+	service.Spec.Selector = map[string]string{"app": fmt.Sprintf("client-%s", downstreamServiceName)}
 	return
 }

@@ -43,12 +43,17 @@ var generateGraphCmd = &cobra.Command{
 		clusters, err := cmd.PersistentFlags().GetString("cluster-list")
 		exitIfError(err)
 		clusterList := strings.Split(clusters, ",")
+
+		controlPlaneClusters, err := cmd.PersistentFlags().GetString("control-plane-cluster-list")
+		exitIfError(err)
+		controlPlaneClusterList := strings.Split(controlPlaneClusters, ",")
+
 		ingressGatewayEndpoint, err := cmd.PersistentFlags().GetString("ingress-gateway-endpoint")
 		exitIfError(err)
 
 		targetFilename := args[0]
 
-		svcGraph := graph.GenerateRandomServiceGraph(numberOfServices, maxSubtreeSize, requestSize, responseSize, clusterList, ingressGatewayEndpoint, graph.GetRandomFromRange)
+		svcGraph := graph.GenerateRandomServiceGraph(numberOfServices, maxSubtreeSize, requestSize, responseSize, clusterList, controlPlaneClusterList, ingressGatewayEndpoint, graph.GetRandomFromRange)
 
 		serviceGraphByte, err := yaml.Marshal(svcGraph)
 		exitIfError(err)
@@ -70,6 +75,8 @@ func init() {
 		"response-size", 100000, "Response size in bytes")
 	generateGraphCmd.PersistentFlags().String(
 		"cluster-list", "", "Comma separated list of cluster contexts")
+	generateGraphCmd.PersistentFlags().String(
+		"control-plane-cluster-list", "", "Comma separated list of control plane cluster contexts")
 	generateGraphCmd.PersistentFlags().String(
 		"ingress-gateway-endpoint", "", "IP to ingress gateway")
 }

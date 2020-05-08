@@ -25,24 +25,25 @@ func GenerateRandomServiceGraph(numberOfServices int,
 	requestSize int,
 	responseSize int,
 	listOfClusters []string,
+	controlPlaneClusters []string,
 	ingressGatewayEndpoint string,
 	generator RandomFromRange) ServiceGraph {
 	serviceGraph := new(ServiceGraph)
-	serviceGraph.Global = generateServiceDefaults(listOfClusters, ingressGatewayEndpoint, generator)
+	serviceGraph.Global = generateServiceDefaults(controlPlaneClusters, ingressGatewayEndpoint, generator)
 	serviceGraph.Defaults = Defaults{
 		ResponseSize: size.ByteSize(responseSize),
 		RequestSize:  size.ByteSize(requestSize),
 	}
 
-	for subTree, numberOfRemainingNodes := 0, numberOfServices; subTree < int(math.Ceil(float64(numberOfServices)/float64(getMaxNodesOfSubtree(subTreeHeight, numberOfServices)))); subTree, numberOfRemainingNodes = subTree + 1, numberOfRemainingNodes - getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes) {
+	for subTree, numberOfRemainingNodes := 0, numberOfServices; subTree < int(math.Ceil(float64(numberOfServices)/float64(getMaxNodesOfSubtree(subTreeHeight, numberOfServices)))); subTree, numberOfRemainingNodes = subTree+1, numberOfRemainingNodes-getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes) {
 		for node := 0; node < getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes); node++ {
 			service := svc.Service{
-				Name:            fmt.Sprintf("s%d", subTree * getMaxNodesOfSubtree(subTreeHeight, numberOfServices)+node),
-				Type:            svctype.ServiceType(svctype.ServiceHTTP),
-				NumReplicas:     defaultNumReplicas,
-				IsEntrypoint:    node == 0,
-				Script:          getTargetRequestCommands(node, getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes), subTree * getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes)),
-				ClusterContext:  getRandomCluster(listOfClusters, generator),
+				Name:           fmt.Sprintf("s%d", subTree*getMaxNodesOfSubtree(subTreeHeight, numberOfServices)+node),
+				Type:           svctype.ServiceType(svctype.ServiceHTTP),
+				NumReplicas:    defaultNumReplicas,
+				IsEntrypoint:   node == 0,
+				Script:         getTargetRequestCommands(node, getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes), subTree*getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes)),
+				ClusterContext: getRandomCluster(listOfClusters, generator),
 			}
 
 			serviceGraph.Services = append(serviceGraph.Services, service)
@@ -124,9 +125,9 @@ func GetRandomFromRange(min, max int) int {
 	return rand.Intn(max-min) + min
 }
 
-func generateServiceDefaults(listOfClusters []string, ingressGatewayEndpoint string, generator RandomFromRange) ServiceDefaults {
+func generateServiceDefaults(controlPlaneClusters []string, ingressGatewayEndpoint string, generator RandomFromRange) ServiceDefaults {
 	serviceDefaults := new(ServiceDefaults)
-	serviceDefaults.FortioCluster = getRandomCluster(listOfClusters, generator)
+	serviceDefaults.ControlPlaneClusters = controlPlaneClusters
 	serviceDefaults.IngressGatewayEndpoint = ingressGatewayEndpoint
 
 	return *serviceDefaults

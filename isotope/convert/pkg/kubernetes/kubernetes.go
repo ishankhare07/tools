@@ -133,8 +133,8 @@ func ServiceGraphToKubernetesManifests(
 			}
 		}
 
-		// Only generates the RBAC rules when Istio is installed.
 		if strings.EqualFold(environmentName, "ISTIO") {
+			// Only generates the RBAC rules when Istio is installed.
 			if service.NumRbacPolicies > 0 {
 				hasRbacPolicy = true
 				var i int32
@@ -148,26 +148,31 @@ func ServiceGraphToKubernetesManifests(
 
 			if service.IsEntrypoint {
 				virtualService := makeVirtualService(service.Name)
-				innerErr = appendManifest(service.ClusterContext, virtualService)
-				if innerErr != nil {
-					return nil, innerErr
+				for _, clusterContext := range serviceGraph.Global.ControlPlaneClusters {
+					innerErr = appendManifest(clusterContext, virtualService)
+					if innerErr != nil {
+						return nil, innerErr
+					}
 				}
 			}
 		}
-	}
 
-	fortioDeployment := makeFortioDeployment(
-		clientNodeSelector,
-		clientImage,
-		serviceGraph.Global.IngressGatewayEndpoint,
-		fmt.Sprintf("%s.%s.svc.cluster.local", serviceGraph.Services[0].Name, consts.ServiceGraphNamespace))
-	if err := appendManifest(serviceGraph.Global.FortioCluster, fortioDeployment); err != nil {
-		return nil, err
-	}
+		if service.IsEntrypoint {
+			fortioDeployment := makeFortioDeployment(
+				clientNodeSelector,
+				clientImage,
+				serviceGraph.Global.IngressGatewayEndpoint,
+				service.Name)
 
-	fortioService := makeFortioService()
-	if err := appendManifest(serviceGraph.Global.FortioCluster, fortioService); err != nil {
-		return nil, err
+			if err := appendManifest(service.ClusterContext, fortioDeployment); err != nil {
+				return nil, err
+			}
+
+			fortioService := makeFortioService(service.Name)
+			if err := appendManifest(service.ClusterContext, fortioService); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	if hasRbacPolicy {
@@ -188,7 +193,6 @@ func ServiceGraphToKubernetesManifests(
 		return nil, err
 	}
 
-	// yamlDocString := strings.Join(manifests, "---\n")
 	for k, v := range manifestMap {
 		returnMap[k] = strings.Join(v, "---\n")
 	}
@@ -246,7 +250,7 @@ func combineLabels(a, b map[string]string) map[string]string {
 	return c
 }
 
-func makeVirtualService(serviceName string) (v1alpha3.VirtualService) {
+func makeVirtualService(serviceName string) v1alpha3.VirtualService {
 	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, consts.ServiceGraphNamespace)
 
 	typeMeta := metav1.TypeMeta{
@@ -264,7 +268,7 @@ func makeVirtualService(serviceName string) (v1alpha3.VirtualService) {
 	spec := networkingv1alpha3.VirtualService{
 		Gateways: []string{DefaultGateway},
 		Hosts:    []string{serviceHost},
-		Http:     []*networkingv1alpha3.HTTPRoute{
+		Http: []*networkingv1alpha3.HTTPRoute{
 			{Route: []*networkingv1alpha3.HTTPRouteDestination{
 				{
 					Destination: destination,

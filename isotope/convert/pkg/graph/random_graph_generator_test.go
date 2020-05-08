@@ -18,9 +18,10 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 	requestSize := 5
 	responseSize := 5
 	clusterList := []string{"cluster0", "cluster1"}
+	controlPlaneClusters := []string{"cluster0", "cluster1"}
 	ingressEndpoint := "x.x.x.x"
 
-	svcGraph := GenerateRandomServiceGraph(numberOfService, 5, requestSize, responseSize, clusterList, ingressEndpoint, MockGenerator)
+	svcGraph := GenerateRandomServiceGraph(numberOfService, 5, requestSize, responseSize, clusterList, controlPlaneClusters, ingressEndpoint, MockGenerator)
 
 	expectedGraph := ServiceGraph{
 		Services: []svc.Service{
@@ -29,7 +30,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
-				IsEntrypoint: true,
+				IsEntrypoint:   true,
 				Script: script.Script{
 					script.ConcurrentCommand{
 						script.RequestCommand{
@@ -46,7 +47,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
-				IsEntrypoint: false,
+				IsEntrypoint:   false,
 				Script: script.Script{
 					script.ConcurrentCommand{
 						script.RequestCommand{
@@ -63,7 +64,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
-				IsEntrypoint: false,
+				IsEntrypoint:   false,
 				Script: script.Script{
 					script.ConcurrentCommand{
 						script.RequestCommand{
@@ -80,7 +81,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
-				IsEntrypoint: false,
+				IsEntrypoint:   false,
 				Script:         script.Script{},
 			},
 			{
@@ -88,13 +89,13 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
-				IsEntrypoint: false,
+				IsEntrypoint:   false,
 				Script:         script.Script{},
 			},
 		},
 		Global: ServiceDefaults{
-			FortioCluster:          "cluster1",
 			IngressGatewayEndpoint: ingressEndpoint,
+			ControlPlaneClusters:   controlPlaneClusters,
 		},
 	}
 

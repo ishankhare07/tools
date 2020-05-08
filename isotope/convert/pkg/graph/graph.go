@@ -28,8 +28,8 @@ type ServiceGraph struct {
 }
 
 type ServiceDefaults struct {
-	FortioCluster          string `json:"fortio_cluster,omitempty"`
-	IngressGatewayEndpoint string `json:"ingress_gateway_endpoint,omitempty"`
+	IngressGatewayEndpoint string   `json:"ingress_gateway_endpoint,omitempty"`
+	ControlPlaneClusters   []string `json:"control_plane_clusters,omitempty"`
 }
 
 func (serviceGraph ServiceGraph) FindServiceByName(serviceName string) (svc.Service, error) {
