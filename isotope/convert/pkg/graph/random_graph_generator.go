@@ -42,7 +42,7 @@ func GenerateRandomServiceGraph(numberOfServices int,
 				Type:           svctype.ServiceType(svctype.ServiceHTTP),
 				NumReplicas:    defaultNumReplicas,
 				IsEntrypoint:   node == 0,
-				Script:         getTargetRequestCommands(node, getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes), subTree*getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes)),
+				Script:         getTargetRequestCommands(node, getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes), subTree*getMaxNodesOfSubtree(subTreeHeight, numberOfServices)),
 				ClusterContext: getRandomCluster(listOfClusters, generator),
 			}
 

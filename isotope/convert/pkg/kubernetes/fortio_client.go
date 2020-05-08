@@ -59,7 +59,7 @@ func makeFortioDeployment(
 							"-c",
 							"8",
 							"-qps",
-							"50",
+							"200",
 							"-t",
 							"0",
 							"-r",
