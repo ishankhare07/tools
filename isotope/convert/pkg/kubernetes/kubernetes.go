@@ -17,6 +17,8 @@ package kubernetes
 
 import (
 	"fmt"
+	networkingv1alpha3 "istio.io/api/networking/v1alpha3"
+	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"istio.io/tools/isotope/convert/pkg/graph/script"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"math/rand"
@@ -37,6 +39,8 @@ const (
 	// ServiceGraphNamespace is the namespace all service graph related resources
 	// (i.e. ConfigMap, Services, and Deployments) will reside in.
 	ServiceGraphNamespace = "service-graph"
+
+	DefaultGateway = "istio-system/ingressgateway"
 
 	numConfigMaps          = 1
 	numManifestsPerService = 2
@@ -130,15 +134,25 @@ func ServiceGraphToKubernetesManifests(
 		}
 
 		// Only generates the RBAC rules when Istio is installed.
-		if strings.EqualFold(environmentName, "ISTIO") && service.NumRbacPolicies > 0 {
-			hasRbacPolicy = true
-			var i int32
-			// Generates random RBAC rules for the service.
-			for i = 0; i < service.NumRbacPolicies; i++ {
-				addManifestToAllClusters(generateRbacPolicy(service, false /* allowAll */))
+		if strings.EqualFold(environmentName, "ISTIO") {
+			if service.NumRbacPolicies > 0 {
+				hasRbacPolicy = true
+				var i int32
+				// Generates random RBAC rules for the service.
+				for i = 0; i < service.NumRbacPolicies; i++ {
+					addManifestToAllClusters(generateRbacPolicy(service, false /* allowAll */))
+				}
+				// Generates "allow-all" RBAC rule for the service.
+				addManifestToAllClusters(generateRbacPolicy(service, true /* allowAll */))
 			}
-			// Generates "allow-all" RBAC rule for the service.
-			addManifestToAllClusters(generateRbacPolicy(service, true /* allowAll */))
+
+			if service.IsEntrypoint {
+				virtualService := makeVirtualService(service.Name)
+				innerErr = appendManifest(service.ClusterContext, virtualService)
+				if innerErr != nil {
+					return nil, innerErr
+				}
+			}
 		}
 	}
 
@@ -230,6 +244,40 @@ func combineLabels(a, b map[string]string) map[string]string {
 		c[k] = v
 	}
 	return c
+}
+
+func makeVirtualService(serviceName string) (v1alpha3.VirtualService) {
+	serviceHost := fmt.Sprintf("%s.%s.svc.cluster.local", serviceName, consts.ServiceGraphNamespace)
+
+	typeMeta := metav1.TypeMeta{
+		Kind:       "VirtualService",
+		APIVersion: "networking.istio.io/v1alpha3",
+	}
+
+	virtualServiceMeta := metav1.ObjectMeta{
+		Name:      serviceName,
+		Namespace: consts.ServiceGraphNamespace,
+	}
+
+	destination := &networkingv1alpha3.Destination{Host: serviceHost, Port: &networkingv1alpha3.PortSelector{Number: uint32(consts.ServicePort)}}
+
+	spec := networkingv1alpha3.VirtualService{
+		Gateways: []string{DefaultGateway},
+		Hosts:    []string{serviceHost},
+		Http:     []*networkingv1alpha3.HTTPRoute{
+			{Route: []*networkingv1alpha3.HTTPRouteDestination{
+				{
+					Destination: destination,
+				},
+			}},
+		},
+	}
+
+	return v1alpha3.VirtualService{
+		TypeMeta:   typeMeta,
+		ObjectMeta: virtualServiceMeta,
+		Spec:       spec,
+	}
 }
 
 func makeServiceGraphNamespace() (namespace apiv1.Namespace) {
