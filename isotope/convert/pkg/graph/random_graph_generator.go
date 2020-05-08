@@ -34,27 +34,31 @@ func GenerateRandomServiceGraph(numberOfServices int,
 		RequestSize:  size.ByteSize(requestSize),
 	}
 
-	for subTree := 0; subTree < int(math.Ceil(float64(numberOfServices)/float64(getMaxNodesOfSubtree(subTreeHeight)))); subTree++ {
-		for node := 0; node < getMaxNodesOfSubtree(subTreeHeight); node++ {
-			isRootNode := node == subTree * getMaxNodesOfSubtree(subTreeHeight)
-			s := svc.Service{
-				Name:            fmt.Sprintf("s%d", subTree*getMaxNodesOfSubtree(subTreeHeight)+node),
+	for subTree, numberOfRemainingNodes := 0, numberOfServices; subTree < int(math.Ceil(float64(numberOfServices)/float64(getMaxNodesOfSubtree(subTreeHeight, numberOfServices)))); subTree, numberOfRemainingNodes = subTree + 1, numberOfRemainingNodes - getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes) {
+		for node := 0; node < getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes); node++ {
+			service := svc.Service{
+				Name:            fmt.Sprintf("s%d", subTree * getMaxNodesOfSubtree(subTreeHeight, numberOfServices)+node),
 				Type:            svctype.ServiceType(svctype.ServiceHTTP),
 				NumReplicas:     defaultNumReplicas,
-				IsEntrypoint:    isRootNode,
-				Script:          getTargetRequestCommands(node, getMaxNodesOfSubtree(subTreeHeight), subTree*getMaxNodesOfSubtree(subTreeHeight)),
+				IsEntrypoint:    node == 0,
+				Script:          getTargetRequestCommands(node, getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes), subTree * getMaxNodesOfSubtree(subTreeHeight, numberOfRemainingNodes)),
 				ClusterContext:  getRandomCluster(listOfClusters, generator),
 			}
 
-			serviceGraph.Services = append(serviceGraph.Services, s)
+			serviceGraph.Services = append(serviceGraph.Services, service)
 		}
 	}
 
 	return *serviceGraph
 }
 
-func getMaxNodesOfSubtree(height int) int {
-	return int(math.Pow(float64(2), float64(height+1)) - 1)
+func getMaxNodesOfSubtree(height, numberOfRemainingNodes int) int {
+	maxNodesOfSubtree := int(math.Pow(float64(2), float64(height+1)) - 1)
+	if numberOfRemainingNodes >= maxNodesOfSubtree {
+		return maxNodesOfSubtree
+	} else {
+		return numberOfRemainingNodes
+	}
 }
 
 func getLevel(nodeIndex int) int {

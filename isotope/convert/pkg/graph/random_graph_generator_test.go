@@ -29,6 +29,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
+				IsEntrypoint: true,
 				Script: script.Script{
 					script.ConcurrentCommand{
 						script.RequestCommand{
@@ -45,6 +46,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
+				IsEntrypoint: false,
 				Script: script.Script{
 					script.ConcurrentCommand{
 						script.RequestCommand{
@@ -61,6 +63,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
+				IsEntrypoint: false,
 				Script: script.Script{
 					script.ConcurrentCommand{
 						script.RequestCommand{
@@ -77,6 +80,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
+				IsEntrypoint: false,
 				Script:         script.Script{},
 			},
 			{
@@ -84,6 +88,7 @@ func TestGenerateRandomServiceGraph(t *testing.T) {
 				Type:           svctype.ServiceHTTP,
 				NumReplicas:    6,
 				ClusterContext: "cluster1",
+				IsEntrypoint: false,
 				Script:         script.Script{},
 			},
 		},
