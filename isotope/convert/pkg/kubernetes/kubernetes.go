@@ -40,7 +40,7 @@ const (
 	// (i.e. ConfigMap, Services, and Deployments) will reside in.
 	ServiceGraphNamespace = "service-graph"
 
-	DefaultGateway = "istio-system/ingressgateway"
+	DefaultGateway = "istio-system/istio-ingressgateway"
 
 	numConfigMaps          = 1
 	numManifestsPerService = 2
