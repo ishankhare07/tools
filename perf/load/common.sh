@@ -44,14 +44,18 @@ function run_test() {
   if [[ -z "${DELETE}" ]];then
     sleep 3
     for manifest in ${manifestDir}/*.yaml; do
-       kubectl apply -f "${manifest}" --context "$(echo ${manifest} | cut -d'.' -f1 | cut -d'/' -f2)"
+       kubectl apply -f "${manifest}" --context "$(echo ${manifest} | cut -d'.' -f1 | cut -d'/' -f2)" &
     done
+    wait
   else
     for manifest in ${manifestDir}/*.yaml; do
-      kubectl delete -f "${manifest}" --context "$(echo ${manifest} | cut -d'.' -f1 | cut -d'/' -f2)"
+      kubectl delete -f "${manifest}" --context "$(echo ${manifest} | cut -d'.' -f1 | cut -d'/' -f2)" &
     done
+    wait
     # kubectl delete ns "${ns}"
   fi
+
+  echo "Done with run tests"
 }
 
 function start_servicegraphs() {
